@@ -67,11 +67,11 @@ class LogisticRegression(object):
             plt.contour(xx, yy, probs, levels=[0.5])
             
 
-def test_lr(learning_rate=0.01, n_epochs=20000, regularization=0.1):
+def test_lr(learning_rate=0.01, noi=20000, regularization=0.1):
     """
     A test function to check the working of the code composed
     :param learning_rate: The learning rate of the gradient descent
-    :param n_epochs: number of iterations
+    :param noi: number of iterations
     :param regularization: The amount of Regularization to be added 
     :return: none just plots
     """
@@ -87,7 +87,7 @@ def test_lr(learning_rate=0.01, n_epochs=20000, regularization=0.1):
     classifierWreg = LogisticRegression(data=x, labels=y)
 
     # train
-    for epoch in range(n_epochs):
+    for epoch in range(noi):
         classifierWreg.train(lr=learning_rate, L2_reg=regularization)
         cost_reg = classifierWreg.xentropy()
         print(epoch, cost_reg)
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     noc = 9
     labels = np.zeros((train.shape[0], noc))
 
-    tempind = sample(range(train.shape[0]), np.int(0.3 * train.shape[0]))
+    tempind = sample(range(train.shape[0]), np.int(0.5 * train.shape[0]))
     temp_train = train[tempind]
 
     temp_labels = np.zeros((temp_train.shape[0], noc))
@@ -124,11 +124,11 @@ if __name__ == "__main__":
         temp_labels[i, np.int(np.array(temp_train[i, temp_train.shape[1]-1]))] = 1
 
     classifierWreg = LogisticRegression(data=temp_train[:, :temp_train.shape[1]-1], labels=temp_labels)
-    n_epochs = 10000
+    noi = 10000
     learning_rate = 0.0055
     regularization = 0.02
 
-    for epoch in range(n_epochs):
+    for epoch in range(noi):
         classifierWreg.train(lr=learning_rate,L2_reg=regularization)
         cost_reg = classifierWreg.xentropy()
         print(epoch, cost_reg)
