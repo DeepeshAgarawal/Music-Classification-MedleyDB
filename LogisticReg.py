@@ -1,9 +1,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from random import sample
 
 
 def sigmoid(x):
     return 1.0 / (1 + np.exp(-x))
+
+
+def softmax(x):
+    e = np.exp(x - np.max(x))  # prevent overflow
+    if e.ndim == 1:
+        return e / np.sum(e, axis=0)
+    else:
+        return e / np.array([np.sum(e, axis=1)]).T  # ndim = 2
 
 
 class LogisticRegression(object):
@@ -14,8 +23,8 @@ class LogisticRegression(object):
         """
         self.x = data
         self.y = labels
-        self.W = np.random.random((self.x.shape[1], self.y.shape[1]))
-        self.b = np.random.random(self.y.shape[1])
+        self.W = np.zeros((self.x.shape[1], self.y.shape[1]))
+        self.b = np.zeros(self.y.shape[1])
 
     def train(self, lr=0.1, data=None, L2_reg=0.00):
         """
@@ -27,7 +36,7 @@ class LogisticRegression(object):
         if data is not None:
             self.x = data
 
-        d_y = self.y - sigmoid(np.dot(self.x, self.W) + self.b)
+        d_y = self.y - softmax(np.dot(self.x, self.W) + self.b)
 
         self.W += lr * np.dot(self.x.T, d_y) - lr * L2_reg * self.W
         self.b += lr * np.mean(d_y, axis=0)
@@ -36,7 +45,7 @@ class LogisticRegression(object):
         """
         :return: The cross entropy 
         """
-        sigmoid_activation = sigmoid(np.dot(self.x, self.W) + self.b)
+        sigmoid_activation = softmax(np.dot(self.x, self.W) + self.b)
         cross_entropy = - np.mean(np.sum(self.y * np.log(sigmoid_activation)+(1 - self.y) * np.log(1 - sigmoid_activation),axis=1))
         return cross_entropy
 
@@ -46,7 +55,7 @@ class LogisticRegression(object):
         :param x: Data to be tested
         :return: A vector containing the probabilities of belonging to each class
         """
-        return sigmoid(np.dot(x, self.W) + self.b)
+        return softmax(np.dot(x, self.W) + self.b)
 
     def plot_lr(self):
         xx, yy = np.mgrid[0:5:.1, 0:5:.1]
@@ -90,4 +99,64 @@ def test_lr(learning_rate=0.01, n_epochs=20000, regularization=0.1):
 
 
 if __name__ == "__main__":
-    test_lr()
+    # test_lr()
+    table = np.genfromtxt('featuresNew.csv', delimiter=',')
+    # table = np.load('lda_norm.npy')
+    f = np.int(0.8 * table.shape[0])
+    indices = sample(range(table.shape[0]), f)
+    test = np.delete(table, indices, axis=0)
+    # train = np.load('train.npy')
+    # test  = np.load('test.npy')
+    temp = table[indices]
+    fvalid = np.int(0.2 * table.shape[0])
+    indices = sample(range(temp.shape[0]), fvalid)
+    validation = temp[indices]
+    train = np.delete(temp, indices, axis=0)
+    noc = 9
+    labels = np.zeros((train.shape[0], noc))
+
+    tempind = sample(range(train.shape[0]), np.int(0.3 * train.shape[0]))
+    temp_train = train[tempind]
+
+    temp_labels = np.zeros((temp_train.shape[0], noc))
+
+    for i in range(temp_train.shape[0]):
+        temp_labels[i, np.int(np.array(temp_train[i, temp_train.shape[1]-1]))] = 1
+
+    classifierWreg = LogisticRegression(data=temp_train[:, :temp_train.shape[1]-1], labels=temp_labels)
+    n_epochs = 10000
+    learning_rate = 0.0055
+    regularization = 0.02
+
+    for epoch in range(n_epochs):
+        classifierWreg.train(lr=learning_rate,L2_reg=regularization)
+        cost_reg = classifierWreg.xentropy()
+        print(epoch, cost_reg)
+
+#     prediction
+    correctPred = 0
+    totalTested = 0
+
+    for a,b in zip(temp_train[:, :temp_train.shape[1]-1], temp_labels):
+        predValue=classifierWreg.predict(a)
+        indexMax = np.argmax(predValue)
+        if indexMax == np.argmax(b):
+            correctPred=correctPred+1
+        #print predValue,indexMax,b
+        totalTested=totalTested+1
+
+    print(totalTested, correctPred)
+
+    correctPred = 0
+    totalTested = 0
+
+    for a, b in zip(validation[:, :validation.shape[1] - 1], validation[:, validation.shape[1] - 1] ):
+        predValue = classifierWreg.predict(a)
+        indexMax = np.argmax(predValue)
+        if indexMax == b:
+            correctPred = correctPred + 1
+        # print predValue,indexMax,b
+        totalTested = totalTested + 1
+
+    print(totalTested, correctPred)
+
