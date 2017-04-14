@@ -51,8 +51,8 @@ def pdf_multivariate_gauss(x, w, mu, cov):
 
 def weight_term(x, w, mu, cov):
     det = np.linalg.det(cov)
-    if det < 10**-20:
-        det = 10**-6
+    if det < 10**-60:
+        det = 10**-20
         # cov += npm.eye(cov.shape[0], cov.shape[1])
     return float(w / (((2 * np.pi) ** (len(mu) / 2)) * det ** (1 / 2)))
 
@@ -63,6 +63,7 @@ def power_term(x, w, mu, cov):
         cov += npm.eye(cov.shape[0], cov.shape[1])*0.00001
     power = (-1 / 2) * ((x - mu).T.dot(np.linalg.inv(cov)).dot((x - mu)))
     return float(power)
+
 
 def gmm_init(nom, d, data):
     """
@@ -82,21 +83,25 @@ def gmm_init(nom, d, data):
                                  ('init_cov', float, (d, d)),
                                  ('cov', float, (d, d))])
     model['w'] = 1/nom
-    [mu,clus] = kmeans.find_centers(data.T, nom)
-    model['mu'] = np.array(mu)
+    if data.shape[1] > nom:
+        mu = kmeans.find_centers(data.T, nom)
+        model['mu'] = np.array(mu)
+        for i in range(nom):
+            # model['cov'][i] = np.cov(np.array(clus[i]).T)
+            # if np.isnan(model['cov'][i]).any():
+            model['cov'][i] = npm.eye(d)
+    else:
+        for i in range(nom):
+            model['mu'][i] = data[:, np.int(np.random.random()*data.shape[1])]
+            model['cov'][i] = npm.eye(d)
     model['init_mu'] = model['mu']
-    # model['mu'] = np.random.random((nom, d))
     # model['cov'] = np.random.random((nom, d, d))
-    for i in range(nom):
-        # model['mu'][i] = np.random.randint(0,5,np.size(data, 0))
-        # model['cov'] = npm.eye(d)
-        model['cov'][i] = np.cov(np.array(clus[i]).T)
-        while np.isnan(model['cov'][i]).any():
-            model['cov'][i] = np.cov(np.array(clus[i]).T)
-
-
-
-
+    # for i in range(nom):
+    #     # model['mu'][i] = np.random.randint(0,5,np.size(data, 0))
+    #     model['cov'] = npm.eye(d)
+        # model['cov'][i] = np.cov(np.array(clus[i]).T)
+        # while np.isnan(model['cov'][i]).any():
+        #     model['cov'][i] = np.cov(np.array(clus[i]).T)
     model['init_cov'] = model['cov']
     return model
 

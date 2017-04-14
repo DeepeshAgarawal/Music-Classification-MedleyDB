@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 from random import sample
 
 
@@ -8,7 +8,7 @@ def sigmoid(x):
 
 
 def softmax(x):
-    e = np.exp(x - np.max(x))  # prevent overflow
+    e = np.exp(x - np.max(x))
     if e.ndim == 1:
         return e / np.sum(e, axis=0)
     else:
@@ -65,57 +65,32 @@ class LogisticRegression(object):
                 for j in range(xx.shape[1]):
                     probs[i, j] = self.predict([xx[i, j], yy[i, j]])[k]
             plt.contour(xx, yy, probs, levels=[0.5])
-            
-
-def test_lr(learning_rate=0.01, noi=20000, regularization=0.1):
-    """
-    A test function to check the working of the code composed
-    :param learning_rate: The learning rate of the gradient descent
-    :param noi: number of iterations
-    :param regularization: The amount of Regularization to be added 
-    :return: none just plots
-    """
-    x = np.zeros((300, 2))
-    x[0:100, :] = np.random.random((100, 2))
-    x[100:200, :] = np.random.random((100, 2)) + 1
-    x[200:300, :] = np.array([np.random.random((100)), np.random.random((100)) + 1]).T
-    y = np.zeros((300, 3))
-    y[0:100, :] = np.hstack((np.ones((100, 1)), np.zeros((100, 1)), np.zeros((100, 1))))
-    y[100:200, :] = np.hstack((np.zeros((100, 1)), np.ones((100, 1)), np.zeros((100, 1))))
-    y[200:300, :] = np.hstack((np.zeros((100, 1)), np.zeros((100, 1)), np.ones((100, 1))))
-
-    classifierWreg = LogisticRegression(data=x, labels=y)
-
-    # train
-    for epoch in range(noi):
-        classifierWreg.train(lr=learning_rate, L2_reg=regularization)
-        cost_reg = classifierWreg.xentropy()
-        print(epoch, cost_reg)
-    classifierWreg.plot_lr()
-    plt.scatter(x[0:100, 0], x[0:100, 1])
-    plt.scatter(x[100:200, 0], x[100:200, 1])
-    plt.scatter(x[200:300, 0], x[200:300, 1])
-    plt.show()
 
 
-if __name__ == "__main__":
-    # test_lr()
-    table = np.genfromtxt('featuresNew.csv', delimiter=',')
-    # table = np.load('lda_norm.npy')
-    f = np.int(0.8 * table.shape[0])
-    indices = sample(range(table.shape[0]), f)
-    test = np.delete(table, indices, axis=0)
-    # train = np.load('train.npy')
-    # test  = np.load('test.npy')
-    temp = table[indices]
-    fvalid = np.int(0.2 * table.shape[0])
-    indices = sample(range(temp.shape[0]), fvalid)
-    validation = temp[indices]
-    train = np.delete(temp, indices, axis=0)
-    noc = 9
-    labels = np.zeros((train.shape[0], noc))
-
-    tempind = sample(range(train.shape[0]), np.int(0.5 * train.shape[0]))
+table = np.genfromtxt('featuresNew.csv', delimiter=',')
+# table = np.load('lda_norm.npy')
+f = np.int(0.8 * table.shape[0])
+indices = sample(range(table.shape[0]), f)
+test = np.delete(table, indices, axis=0)
+# train = np.load('train.npy')
+# test  = np.load('test.npy')
+temp = table[indices]
+fvalid = np.int(0.2 * table.shape[0])
+indices = sample(range(temp.shape[0]), fvalid)
+validation = temp[indices]
+train = np.delete(temp, indices, axis=0)
+noc = 9
+labels = np.zeros((train.shape[0], noc))
+train_curve = np.zeros(np.arange(0.1, 1.01, 0.05).shape[0])
+test_curve = np.zeros(np.arange(0.1, 1.01, 0.05).shape[0])
+val_curve = np.zeros(np.arange(0.1, 1.01, 0.05).shape[0])
+k = -1
+noi = 10000
+learning_rate = 0.0015
+regularization = 20
+for percent in np.arange(0.1, 1.01, 0.05):
+    k += 1
+    tempind = sample(range(train.shape[0]), np.int(percent * train.shape[0]))
     temp_train = train[tempind]
 
     temp_labels = np.zeros((temp_train.shape[0], noc))
@@ -124,28 +99,26 @@ if __name__ == "__main__":
         temp_labels[i, np.int(np.array(temp_train[i, temp_train.shape[1]-1]))] = 1
 
     classifierWreg = LogisticRegression(data=temp_train[:, :temp_train.shape[1]-1], labels=temp_labels)
-    noi = 10000
-    learning_rate = 0.0055
-    regularization = 0.02
+    print(percent)
 
-    for epoch in range(noi):
+    for iteration in range(noi):
         classifierWreg.train(lr=learning_rate,L2_reg=regularization)
         cost_reg = classifierWreg.xentropy()
-        print(epoch, cost_reg)
+        # print(iteration, cost_reg)
 
-#     prediction
+    #     prediction
     correctPred = 0
     totalTested = 0
 
-    for a,b in zip(temp_train[:, :temp_train.shape[1]-1], temp_labels):
+    for a, b in zip(temp_train[:, :temp_train.shape[1]-1], temp_labels):
         predValue=classifierWreg.predict(a)
         indexMax = np.argmax(predValue)
         if indexMax == np.argmax(b):
-            correctPred=correctPred+1
-        #print predValue,indexMax,b
-        totalTested=totalTested+1
+            correctPred += 1
+        totalTested += 1
 
-    print(totalTested, correctPred)
+    train_curve[k] = correctPred/totalTested
+    print(train_curve[k])
 
     correctPred = 0
     totalTested = 0
@@ -154,9 +127,46 @@ if __name__ == "__main__":
         predValue = classifierWreg.predict(a)
         indexMax = np.argmax(predValue)
         if indexMax == b:
-            correctPred = correctPred + 1
+            correctPred += 1
         # print predValue,indexMax,b
-        totalTested = totalTested + 1
+        totalTested += 1
 
-    print(totalTested, correctPred)
+    val_curve[k] = correctPred / totalTested
+    print(val_curve[k])
 
+    # correctPred = 0
+    # totalTested = 0
+
+    # for a, b in zip(test[:, :test.shape[1] - 1], test[:, test.shape[1] - 1] ):
+    #     predValue = classifierWreg.predict(a)
+    #     indexMax = np.argmax(predValue)
+    #     if indexMax == b:
+    #         correctPred += 1
+    #     # print predValue,indexMax,b
+    #     totalTested += 1
+    #
+    # test_curve[k] = correctPred / totalTested
+    # print(test_curve[k])
+
+np.save('LogRegClassifier.npy', classifierWreg)
+correctPred = 0
+totalTested = 0
+
+for a, b in zip(test[:, :test.shape[1] - 1], test[:, test.shape[1] - 1] ):
+    predValue = classifierWreg.predict(a)
+    indexMax = np.argmax(predValue)
+    if indexMax == b:
+        correctPred += 1
+    # print predValue,indexMax,b
+    totalTested += 1
+
+test_curve[k] = correctPred / totalTested
+print("test accuracy", test_curve[k])
+
+plt.plot(np.arange(0.1, 1.01, 0.05), train_curve*100, label="Train Accuracy")
+plt.plot(np.arange(0.1, 1.01, 0.05), val_curve*100, label="Validation Accuracy")
+plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+           ncol=2, mode="expand", borderaxespad=0.)
+plt.xlabel('Data used for Training (in %)')
+plt.ylabel('Accuracy(in %)')
+plt.show()

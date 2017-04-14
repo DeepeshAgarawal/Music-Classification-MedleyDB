@@ -44,4 +44,4 @@ def find_centers(X, K):
         clusters = cluster_points(X, mu)
         # Reevaluate centers
         mu = reevaluate_centers(oldmu, clusters)
-    return (mu,clusters)
+    return mu
